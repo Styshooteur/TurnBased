@@ -31,35 +31,38 @@ int EchoServer::Run()
         // receive new messages
         if(selector_.wait(sf::milliseconds(20)))
         {
-            for(auto& socket: sockets_)
+            for(auto& sendingsocket: sockets_)
             {
-                if(selector_.isReady(socket))
+                if(selector_.isReady(sendingsocket))
                 {
                     std::array<char, maxDataSize> receivedMsg{};
                     std::size_t received = 0;
                     sf::Socket::Status receivingStatus;
                     do
                     {
-                        receivingStatus = socket.receive(receivedMsg.data(), maxDataSize, received);
+                        receivingStatus = sendingsocket.receive(receivedMsg.data(), maxDataSize, received);
                     } while (receivingStatus == sf::Socket::Partial);
 
                     if(receivingStatus == sf::Socket::Done)
                     {
-                        std::cout << "Received a msg from " << socket.getRemoteAddress().toString() << ":"
-                        << socket.getRemotePort() << "\n" << receivedMsg.data() << '\n';
+                        std::cout << "Received a msg from " << sendingsocket.getRemoteAddress().toString() << ":"
+                        << sendingsocket.getRemotePort() << "\n" << receivedMsg.data() << '\n';
 
                         //Resending the msg
                         std::size_t sent = 0;
                         sf::Socket::Status sentStatus;
 
-                        do
+                        for (auto& receivingsocket : sockets_)
                         {
-                            sentStatus = socket.send(receivedMsg.data(), maxDataSize, sent);
-                        } while (sentStatus == sf::Socket::Partial);
+                            do
+                            {
+                                sentStatus = sendingsocket.send(receivedMsg.data(), maxDataSize, sent);
+                            } while (sentStatus == sf::Socket::Partial);
 
-                        if(sentStatus == sf::Socket::Done)
-                        {
-                            std::cout << "Successfully resent the msg to the client\n";
+                            if (sentStatus == sf::Socket::Done)
+                            {
+                                std::cout << "Successfully resent the msg to the client\n";
+                            }
                         }
                     }
                 }
